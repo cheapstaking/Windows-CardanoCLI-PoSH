@@ -32,6 +32,8 @@ Windows-Cardano-CLI-Tools.ps1 works along side theDaedalus wallet, this must fir
 5. Open Windows-Cardano-CLI.ps1
 6. On line 4 update your key folder to where you want to store you key files for each wallet you create (Recommend targeting USB thumb drive)
 
+![01-setup.gif](https://github.com/cheapstaking/Windows-CardanoCLI-PoSH/blob/master/img/01-Setup.gif)
+
 #### Creating a CLI wallet for Payment & Stake Addresses
 
 1. Run Windows-Cardano-CLI.ps1 to execute the tool
@@ -39,6 +41,8 @@ Windows-Cardano-CLI-Tools.ps1 works along side theDaedalus wallet, this must fir
 3. Copy the payment.addr address from the screen and send funds using daedalus (Funds will be required in order to pay fees to register your stake address and to delegate to your pool - if you are pledging funds held on this address will be your pledge delegation)
 4. Press 2 to register your stake address (Required before you can delegate or register addresses as a stakepool owner/pledger)
 5. Copy paste the UTXO in the payment wallet that will be used to deduct fees
+
+![02-KeyCreate.gif](https://github.com/cheapstaking/Windows-CardanoCLI-PoSH/blob/master/img/02-KeyCreate.gif)
 
 > A stake address holds all your stake rewards, or if your a pool owner all margins, costs and owner pledge delegation rewards. Reward funds held here can be sent to a payment address using the stake.vkey & stake.skey
 
@@ -49,4 +53,8 @@ If keys have been generated in order to pledge to a pool, your pool operator wil
 1. Using Windows-Cardano-CLI.ps1 press option 6
 2. Paste in the pool verification key (Pool vkey) from your pool operator OR copy from [pooltool](https://pooltool.io)
 
+![03-Delegation.gif](https://github.com/cheapstaking/Windows-CardanoCLI-PoSH/blob/master/img/03-Delegation.gif)
+
 #### Sending Funds from CLI Payment Address
+
+![04-Transactions.gif](https://github.com/cheapstaking/Windows-CardanoCLI-PoSH/blob/master/img/04-Transactions.gif)
