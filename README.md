@@ -34,6 +34,12 @@ Windows-Cardano-CLI-Tools.ps1 works along side theDaedalus wallet, this must fir
 
 ![01-setup.gif](https://github.com/cheapstaking/Windows-CardanoCLI-PoSH/blob/master/img/01-Setup.gif)
 
+7. Set Powershell execution policy to unrestricted if you are unable to run script by running the below command from an administrive powershell window:
+
+`set-executionpolicy unrestricted -force`
+
+![00-PSexecutionPolicy.gif](https://github.com/cheapstaking/Windows-CardanoCLI-PoSH/blob/master/img/00-PSexecutionPolicy.gif)
+
 #### Creating a CLI wallet for Payment & Stake Addresses
 
 1. Run Windows-Cardano-CLI.ps1 to execute the tool
