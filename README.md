@@ -10,7 +10,7 @@ This tool is designed help pool pledgers/co-owners to simplify the cardano comma
 - Register your Stake Address with the blockchain
 - Delegate to Stake Pool
 - Send Funds from CLI Addresses to other wallet types
-- Claim rewards from CLI stake address & send to daedalus (coming soon)
+- Claim rewards from CLI stake address & send to daedalus
 
 > **NEVER** give out your payment.skey or
 > payment.vkey to anyone, as these are used
@@ -58,3 +58,7 @@ If keys have been generated in order to pledge to a pool, your pool operator wil
 #### Sending Funds from CLI Payment Address
 
 ![04-Transactions.gif](https://github.com/cheapstaking/Windows-CardanoCLI-PoSH/blob/master/img/04-Transactions.gif)
+
+#### Claiming Stake Address Rewards
+
+![05-ClaimRewards.gif](https://github.com/cheapstaking/Windows-CardanoCLI-PoSH/blob/master/img/05-ClaimRewards.gif)
