@@ -211,28 +211,51 @@ Function Send-Funds {
     }
 }
 
-Function Address-Balance-Submenu($type, $info) {
-    Write-Host "==== view balance menu ====" -ForegroundColor Green
-    Write-Host "(1) View $info address Stored in KeyFolder: $KeyFolder" 
-    Write-Host "(2) Enter $info address" 
-    $Input = read-host "Please make a selection"
+Function Claim-Rewards {
+    Write-Host "==== Send Rewards Transaction ====" -ForegroundColor Green
+    Write-Host "Your Current Wallets in: $KeyFolder are as below:" 
+    ls $KeyFolder | select -ExpandProperty name
+    $walletName = read-host "Enter the name of the wallet you you wish to claim reward funds from"
 
-    If ($Input -eq '1') {
-        Write-Host "Your Current Wallets in: $KeyFolder are as below:" 
-        ls $KeyFolder | select -ExpandProperty name
-        $Input = read-host "Enter the name of the wallet you wish to view"
-        $address = Get-Content ($KeyFolder + "\" + $input + "\" + "$info.addr")
-        show-balance -Type $type -address $Address
-        pause
+    $WalletPath = $KeyFolder + "\" + $walletName 
+    $paymentaddress = get-content ($WalletPath + "\" + "payment.addr")
+    $stakeaddress = get-content ($WalletPath + "\" + "stake.addr")
+
+    $RewardsBalance = show-balance -address $stakeaddress -Type "stake-address-info"
+    $RewardsBalance
+    Write-host "==== Transaction Fee Required from Payment Address for Transfer ======"
+    $stakeskey = $WalletPath + "\" + "stake.skey"
+    Query-Utxo -paymentaddress $paymentaddress -utxo "$WalletPath\balance.txt" 
+    $utxo = Read-Host "Enter the utxo of your payment address to pay transaction fee by the hash number example: 5d19a49..dd0f73fe#0"
+    $RewardsBalanceLoveLaceOnly = $RewardsBalance | ConvertFrom-Json | select -ExpandProperty * | select -ExpandProperty rewardAccountBalance
+    $Withdrawal = $stakeaddress + "+" + $RewardsBalanceLoveLaceOnly
+
+
+    $SendTo = read-host "Enter the Address you wish to send funds to"
+    $SendAll = read-host "Do you want to send all love laces avaiable on this UTXO? Yes or No" 
+    $utxobalance = get-content $WalletPath\balance.txt | ConvertFrom-Json | select -ExpandProperty $utxo | select -ExpandProperty amount
+
+    If ($SendAll -eq "Yes") {
+        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $SendTo+0 --ttl ((get-tip) + 2000) --fee 0 --withdrawal $Withdrawal --out-file $WalletPath\tx.raw 
+        $minfee = ((calculate-minfee -txincount 2).Split(" ")[0])
+        $lovelacesToReturn = $utxobalance - $minfee
+        $SendAmount = $RewardsBalanceLoveLaceOnly
+        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$lovelacesToReturn --tx-out $SendTo+$SendAmount --ttl ((get-tip) + 2000) --fee $minfee --withdrawal $Withdrawal --out-file $WalletPath\tx.raw 
+        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --testnet-magic 42 --out-file $WalletPath\tx.signed
+        Write-host "Are you sure you wish to send $SendAmount lovelaces at a fee of $minfee to address: $SendTo" -ForegroundColor red
+        $Response = read-host "Type Yes to Submit or press any key to cancel"
     }
 
-    If ($Input -eq '2') {
-        $Address = read-host "Enter $info Address"
-        cls
-        show-balance -Type $type -address $Address
-        pause
+ 
+    if ($Response -eq "Yes") {
+        Try {
+            submit-transaction
+            Remove-item $WalletPath\tx.raw
+            Remove-item $WalletPath\tx.signed
+            Remove-item $WalletPath\balance.txt
+        }
+        catch { $_ }
     }
-
 }
 
 
@@ -260,7 +283,7 @@ do {
             Address-Balance-Submenu -type "stake-address-info" -info "stake"
         } '5' {
             cls
-            Write-host "Function still a work in progress.......watch this space"
+            Claim-Rewards
         } '6' {
             cls
             Delegate-To-Pool
