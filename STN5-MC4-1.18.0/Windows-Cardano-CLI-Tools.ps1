@@ -29,6 +29,21 @@ Function show-balance($Type, $address) {
     Write-host "----------------------------------------------------------------------------------------"
 }
 
+Function Address-Balance-Submenu($type, $info) {
+    Write-Host "==== view balance menu ====" -ForegroundColor Green
+    Write-Host "(1) View $info address Stored in KeyFolder: $KeyFolder" 
+    Write-Host "(2) Enter $info address" 
+    $Input = read-host "Please make a selection"
+
+    If ($Input -eq '1') {
+        Write-Host "Your Current Wallets in: $KeyFolder are as below:" 
+        ls $KeyFolder | select -ExpandProperty name
+        $Input = read-host "Enter the name of the wallet you wish to view"
+        $address = Get-Content ($KeyFolder + "\" + $input + "\" + "$info.addr")
+        show-balance -Type $type -address $Address
+        pause
+    }}
+    
 Function Create-Address-Pair {
     $walletName = Read-Host "Enter Wallet Name eg CHEAP"
     $WalletPath = $KeyFolder + "\" + $walletName
