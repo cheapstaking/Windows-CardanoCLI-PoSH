@@ -42,7 +42,18 @@ Function Address-Balance-Submenu($type, $info) {
         $address = Get-Content ($KeyFolder + "\" + $input + "\" + "$info.addr")
         show-balance -Type $type -address $Address
         pause
-    }}
+    }
+
+    If ($Input -eq '2') {
+        $Address = read-host "Enter $info Address"
+        cls
+        show-balance -Type $type -address $Address
+        pause
+    }
+
+}
+
+
     
 Function Create-Address-Pair {
     $walletName = Read-Host "Enter Wallet Name eg CHEAP"
