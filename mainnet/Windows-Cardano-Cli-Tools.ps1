@@ -3,7 +3,6 @@ $CLI = "C:\Program Files\Daedalus Mainnet\cardano-cli.exe"
 $ENV:CARDANO_NODE_SOCKET_PATH = $PIPE
 $KeyFolder = "C:\Temp\MN-KEYs"
 $ScriptVersion = "1.18.0"
-
 If (!(test-path $KeyFolder)) {
     New-Item -ItemType Directory -Force -Path $KeyFolder 
 }
@@ -50,7 +49,7 @@ Function show-balance($Type, $address) {
     Write-Host "----------------------------------------------------------------------------------------"
     Write-host $Address -ForegroundColor Green
     Write-host "----------------------------------------------------------------------------------------"
-    & $CLI shelley query $Type --address $Address --cardano-mode --mainet
+    & $CLI shelley query $Type --address $Address --cardano-mode --mainnet
     Write-host "----------------------------------------------------------------------------------------"
 }
 
@@ -84,25 +83,25 @@ Function Create-Address-Pair {
 }
 
 Function get-tip {
-    [int]$tip = & $CLI shelley query tip --mainet | ConvertFrom-Json | select -ExpandProperty slotNo
+    [int]$tip = & $CLI shelley query tip --mainnet | ConvertFrom-Json | select -ExpandProperty slotNo
     $tip
 }
 
 Function sign-transaction ($txfilepath = "$WalletPath\tx.raw", $txsignedfilepath = "$WalletPath\tx.signed", $Keys) {
-    & $CLI  shelley transaction sign --tx-body-file $txfilepath $Keys --mainet --out-file $txsignedfilepath
+    & $CLI  shelley transaction sign --tx-body-file $txfilepath $Keys --mainnet --out-file $txsignedfilepath
 }
 
 Function submit-transaction ($txsignedfilepath = "$WalletPath\tx.signed") {
-    & $CLI shelley transaction submit --tx-file $txsignedfilepath --mainet
+    & $CLI shelley transaction submit --tx-file $txsignedfilepath --mainnet
 }
 
 Function calculate-minfee ($txfilepath = "$WalletPath\tx.raw", $txincount = 1, $txoutcount = 1, $protocoljson = "$WalletPath\protocol.json", $witnesscount = 1, $byronwitnesscount = 0) {
-    & $CLI shelley query protocol-parameters --mainet --out-file $protocoljson 
-    & $CLI shelley transaction calculate-min-fee --tx-body-file $txfilepath --tx-in-count $txincount --tx-out-count $txoutcount --mainet --protocol-params-file $protocoljson --witness-count $witnesscount --byron-witness-count $byronwitnesscount
+    & $CLI shelley query protocol-parameters --mainnet --out-file $protocoljson 
+    & $CLI shelley transaction calculate-min-fee --tx-body-file $txfilepath --tx-in-count $txincount --tx-out-count $txoutcount --mainnet --protocol-params-file $protocoljson --witness-count $witnesscount --byron-witness-count $byronwitnesscount
 }
 
 Function Query-Utxo ($paymentaddress, $utxo) {
-    & $CLI shelley query utxo --address $paymentaddress --cardano-mode --mainet --out-file $utxo
+    & $CLI shelley query utxo --address $paymentaddress --cardano-mode --mainnet --out-file $utxo
     write-host "---- UTXO Balances for $paymentaddress ---" -ForegroundColor Green
     get-content $WalletPath\balance.txt
     Write-Host "Reminder Balace must exist on the payment wallet to pay fees to register if funds are missing send ada to cover fees"
@@ -124,7 +123,7 @@ Function Register-Stake-Address {
         $minfee = ((calculate-minfee).Split(" ")[0])
         $utxobalancelessfees = $utxobalance - $minfee - (get-content "$WalletPath\protocol.json" | ConvertFrom-Json | select -ExpandProperty keyDeposit)
         & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$utxobalancelessfees --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw --certificate-file $CertPath
-        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainet --out-file $WalletPath\tx.signed
+        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainnet --out-file $WalletPath\tx.signed
         Write-host "Submit Stake Address Registration to Blockchain at a fee of $minfee deducted from $utxo" -ForegroundColor red
         $Response = read-host "Type Yes to Submit or press any key to cancel" 
         if ($Response -eq "Yes") {
@@ -177,7 +176,7 @@ Function Delegate-To-Pool {
     $minfee = ((calculate-minfee).Split(" ")[0])
     $utxobalancelessfees = $utxobalance - $minfee 
     & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$utxobalancelessfees --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw --certificate-file $WalletPath\delegation.cert
-    & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainet --out-file $WalletPath\tx.signed
+    & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainnet --out-file $WalletPath\tx.signed
 
     Write-host "Submit wallet $walletName delegation to Blockchain at a fee of $minfee deducted from $utxo" -ForegroundColor red
     $Response = read-host "Type Yes to Submit or press any key to cancel" 
@@ -212,7 +211,7 @@ Function Send-Funds {
         $minfee = ((calculate-minfee).Split(" ")[0])
         $SendAmount = $utxobalance - $minfee
         & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $SendTo+$SendAmount --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw 
-        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --mainet --out-file $WalletPath\tx.signed
+        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --mainnet --out-file $WalletPath\tx.signed
     }
     Else {
         $SendAmount = read-host "Enter the Amount of Love Laces to send (1 ADA = 1000000 lovelace)"
@@ -220,7 +219,7 @@ Function Send-Funds {
         $minfee = ((calculate-minfee -txoutcount 2).Split(" ")[0]) 
         $returnAmount = $utxobalance - $SendAmount - $minfee
         & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $SendTo+$SendAmount --tx-out $paymentaddress+$returnAmount --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw 
-        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --mainet --out-file $WalletPath\tx.signed
+        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --mainnet --out-file $WalletPath\tx.signed
     }
 
     Write-host "Are you sure you wish to send $SendAmount lovelaces at a fee of $minfee to address: $SendTo" -ForegroundColor red
@@ -266,7 +265,7 @@ Function Claim-Rewards {
         $lovelacesToReturn = $utxobalance - $minfee
         $SendAmount = $RewardsBalanceLoveLaceOnly
         & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$lovelacesToReturn --tx-out $SendTo+$SendAmount --ttl ((get-tip) + 2000) --fee $minfee --withdrawal $Withdrawal --out-file $WalletPath\tx.raw 
-        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainet --out-file $WalletPath\tx.signed
+        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainnet --out-file $WalletPath\tx.signed
         Write-host "Are you sure you wish to send $SendAmount lovelaces at a fee of $minfee to address: $SendTo" -ForegroundColor red
         $Response = read-host "Type Yes to Submit or press any key to cancel"
     }
