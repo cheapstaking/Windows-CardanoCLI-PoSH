@@ -1,8 +1,9 @@
-﻿$PIPE = "\\.\\pipe\\cardano-node-mainnet"
+$PIPE = "\\.\\pipe\\cardano-node-mainnet"
 $CLI = "C:\Program Files\Daedalus Mainnet\cardano-cli.exe"
 $ENV:CARDANO_NODE_SOCKET_PATH = $PIPE
-$KeyFolder = "C:\Temp\MN-KEYs"
+$KeyFolder = "F:\MN-KEYs"
 $ScriptVersion = "1.18.0"
+
 If (!(test-path $KeyFolder)) {
     New-Item -ItemType Directory -Force -Path $KeyFolder 
 }
@@ -251,7 +252,7 @@ Function Claim-Rewards {
     $stakeskey = $WalletPath + "\" + "stake.skey"
     Query-Utxo -paymentaddress $paymentaddress -utxo "$WalletPath\balance.txt" 
     $utxo = Read-Host "Enter the utxo of your payment address to pay transaction fee by the hash number example: 5d19a49..dd0f73fe#0"
-    $RewardsBalanceLoveLaceOnly = $RewardsBalance | ConvertFrom-Json | select -ExpandProperty * | select -ExpandProperty rewardAccountBalance
+    $RewardsBalanceLoveLaceOnly = $RewardsBalance | ConvertFrom-Json | select *  | select -ExpandProperty SyncRoot  | select -ExpandProperty rewardAccountBalance
     $Withdrawal = $stakeaddress + "+" + $RewardsBalanceLoveLaceOnly
 
 
