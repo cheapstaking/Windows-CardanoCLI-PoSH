@@ -1,8 +1,8 @@
 $PIPE = "\\.\\pipe\\cardano-node-mainnet"
 $CLI = "C:\Program Files\Daedalus Mainnet\cardano-cli.exe"
 $ENV:CARDANO_NODE_SOCKET_PATH = $PIPE
-$KeyFolder = "F:\MN-KEYs"
-$ScriptVersion = "1.18.0"
+$KeyFolder = "C:\Temp\KEYs"
+$ScriptVersion = "1.24.2"
 
 If (!(test-path $KeyFolder)) {
     New-Item -ItemType Directory -Force -Path $KeyFolder 
@@ -42,7 +42,8 @@ Function Main-Menu {
     Write-Host "(5) Claim Rewards from Stake Address -> Payment Address" 
     Write-Host "(6) Delegate to Stake Pool" 
     Write-Host "(7) Send Funds To Payment\Wallet Address" 
-    Write-Host "(8) Exit Script"
+    Write-Host "(8) Submit Json File to BlockChain (Eg VOTE.Json)"
+    Write-Host "(9) Exit Script"
     Write-Host " "
 }
 
@@ -50,7 +51,7 @@ Function show-balance($Type, $address) {
     Write-Host "----------------------------------------------------------------------------------------"
     Write-host $Address -ForegroundColor Green
     Write-host "----------------------------------------------------------------------------------------"
-    & $CLI shelley query $Type --address $Address --cardano-mode --mainnet
+    & $CLI query $Type --address $Address --cardano-mode --mainnet
     Write-host "----------------------------------------------------------------------------------------"
 }
 
@@ -59,13 +60,14 @@ Function Create-Address-Pair {
     $WalletPath = $KeyFolder + "\" + $walletName
     If (!(test-path $WalletPath)) {
         $output = New-Item -ItemType Directory -Force -Path $WalletPath
-        & $CLI shelley address key-gen --verification-key-file "$WalletPath\payment.vkey" --signing-key-file "$WalletPath\payment.skey"
-        & $CLI shelley stake-address key-gen --verification-key-file "$WalletPath\stake.vkey" --signing-key-file "$WalletPath\stake.skey"
+        & $CLI address key-gen --verification-key-file "$WalletPath\payment.vkey" --signing-key-file "$WalletPath\payment.skey"
+        & $CLI stake-address key-gen --verification-key-file "$WalletPath\stake.vkey" --signing-key-file "$WalletPath\stake.skey"
         #Link Stake Address to Payment Address
-        & $CLI shelley address build --payment-verification-key-file "$WalletPath\payment.vkey" --stake-verification-key-file "$WalletPath\stake.vkey" --out-file "$WalletPath\payment.addr" --mainnet
-        & $CLI shelley stake-address build --stake-verification-key-file "$WalletPath\stake.vkey" --out-file "$WalletPath\stake.addr" --mainnet
+        & $CLI  address build --payment-verification-key-file "$WalletPath\payment.vkey" --stake-verification-key-file "$WalletPath\stake.vkey" --out-file "$WalletPath\payment.addr" --mainnet
+        & $CLI  stake-address build --stake-verification-key-file "$WalletPath\stake.vkey" --out-file "$WalletPath\stake.addr" --mainnet
         # Create Stake Address Cert For Registration Latter
-        & $CLI shelley stake-address registration-certificate --stake-verification-key-file "$WalletPath\stake.vkey" --out-file "$WalletPath\stakeaddr.cert"
+        start-sleep 3
+        & $CLI  stake-address registration-certificate --stake-verification-key-file "$WalletPath\stake.vkey" --out-file "$WalletPath\stakeaddr.cert"
         start-sleep 1
         $PaymentAddress = get-content "$WalletPath\Payment.addr"
         $StakeAddress = get-content "$WalletPath\Stake.addr"
@@ -84,25 +86,25 @@ Function Create-Address-Pair {
 }
 
 Function get-tip {
-    [int]$tip = & $CLI shelley query tip --mainnet | ConvertFrom-Json | select -ExpandProperty slotNo
+    [int]$tip = & $CLI  query tip --mainnet | ConvertFrom-Json | select -ExpandProperty slotNo
     $tip
 }
 
 Function sign-transaction ($txfilepath = "$WalletPath\tx.raw", $txsignedfilepath = "$WalletPath\tx.signed", $Keys) {
-    & $CLI  shelley transaction sign --tx-body-file $txfilepath $Keys --mainnet --out-file $txsignedfilepath
+    & $CLI   transaction sign --tx-body-file $txfilepath $Keys --mainnet --out-file $txsignedfilepath
 }
 
 Function submit-transaction ($txsignedfilepath = "$WalletPath\tx.signed") {
-    & $CLI shelley transaction submit --tx-file $txsignedfilepath --mainnet
+    & $CLI  transaction submit --tx-file $txsignedfilepath --mainnet
 }
 
 Function calculate-minfee ($txfilepath = "$WalletPath\tx.raw", $txincount = 1, $txoutcount = 1, $protocoljson = "$WalletPath\protocol.json", $witnesscount = 1, $byronwitnesscount = 0) {
-    & $CLI shelley query protocol-parameters --mainnet --out-file $protocoljson 
-    & $CLI shelley transaction calculate-min-fee --tx-body-file $txfilepath --tx-in-count $txincount --tx-out-count $txoutcount --mainnet --protocol-params-file $protocoljson --witness-count $witnesscount --byron-witness-count $byronwitnesscount
+    & $CLI  query protocol-parameters --mainnet --out-file $protocoljson 
+    & $CLI  transaction calculate-min-fee --tx-body-file $txfilepath --tx-in-count $txincount --tx-out-count $txoutcount --mainnet --protocol-params-file $protocoljson --witness-count $witnesscount --byron-witness-count $byronwitnesscount
 }
 
 Function Query-Utxo ($paymentaddress, $utxo) {
-    & $CLI shelley query utxo --address $paymentaddress --cardano-mode --mainnet --out-file $utxo
+    & $CLI  query utxo --address $paymentaddress --cardano-mode --mainnet --out-file $utxo
     write-host "---- UTXO Balances for $paymentaddress ---" -ForegroundColor Green
     get-content $WalletPath\balance.txt
     Write-Host "Reminder Balace must exist on the payment wallet to pay fees to register if funds are missing send ada to cover fees"
@@ -120,11 +122,11 @@ Function Register-Stake-Address {
         $utxo = Read-Host "Enter your payment wallet utxo that will be used to pay fee followed by the hash number example: 5d19a49..dd0f73fe#0"
         $utxobalance = get-content $WalletPath\balance.txt | ConvertFrom-Json | select -ExpandProperty $utxo | select -ExpandProperty amount
 
-        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+0 --ttl ((get-tip) + 2000) --fee 0 --out-file $WalletPath\tx.raw --certificate-file $CertPath
+        & $CLI  transaction build-raw --tx-in $utxo --tx-out $paymentaddress+0 --ttl ((get-tip) + 2000) --fee 0 --out-file $WalletPath\tx.raw --certificate-file $CertPath
         $minfee = ((calculate-minfee).Split(" ")[0])
         $utxobalancelessfees = $utxobalance - $minfee - (get-content "$WalletPath\protocol.json" | ConvertFrom-Json | select -ExpandProperty keyDeposit)
-        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$utxobalancelessfees --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw --certificate-file $CertPath
-        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainnet --out-file $WalletPath\tx.signed
+        & $CLI  transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$utxobalancelessfees --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw --certificate-file $CertPath
+        & $CLI  transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainnet --out-file $WalletPath\tx.signed
         Write-host "Submit Stake Address Registration to Blockchain at a fee of $minfee deducted from $utxo" -ForegroundColor red
         $Response = read-host "Type Yes to Submit or press any key to cancel" 
         if ($Response -eq "Yes") {
@@ -171,13 +173,13 @@ Function Delegate-To-Pool {
     $utxo = Read-Host "Enter your payment wallet utxo that will be used to pay fee followed by the hash number example: 5d19a49..dd0f73fe#0"
     $utxobalance = get-content $WalletPath\balance.txt | ConvertFrom-Json | select -ExpandProperty $utxo | select -ExpandProperty amount
 
-    & $CLI shelley stake-address delegation-certificate --stake-verification-key-file $WalletPath\stake.vkey --cold-verification-key-file $WalletPath\Pool.key --out-file $WalletPath\delegation.cert
+    & $CLI  stake-address delegation-certificate --stake-verification-key-file $WalletPath\stake.vkey --cold-verification-key-file $WalletPath\Pool.key --out-file $WalletPath\delegation.cert
 
-    & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+0 --ttl ((get-tip) + 2000) --fee 0 --out-file $WalletPath\tx.raw --certificate-file $WalletPath\delegation.cert
+    & $CLI  transaction build-raw --tx-in $utxo --tx-out $paymentaddress+0 --ttl ((get-tip) + 2000) --fee 0 --out-file $WalletPath\tx.raw --certificate-file $WalletPath\delegation.cert
     $minfee = ((calculate-minfee).Split(" ")[0])
     $utxobalancelessfees = $utxobalance - $minfee 
-    & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$utxobalancelessfees --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw --certificate-file $WalletPath\delegation.cert
-    & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainnet --out-file $WalletPath\tx.signed
+    & $CLI  transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$utxobalancelessfees --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw --certificate-file $WalletPath\delegation.cert
+    & $CLI  transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainnet --out-file $WalletPath\tx.signed
 
     Write-host "Submit wallet $walletName delegation to Blockchain at a fee of $minfee deducted from $utxo" -ForegroundColor red
     $Response = read-host "Type Yes to Submit or press any key to cancel" 
@@ -208,19 +210,19 @@ Function Send-Funds {
     $utxobalance = get-content $WalletPath\balance.txt | ConvertFrom-Json | select -ExpandProperty $utxo | select -ExpandProperty amount
 
     If ($SendAll -eq "Yes") {
-        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $SendTo+0 --ttl ((get-tip) + 2000) --fee 0 --out-file $WalletPath\tx.raw 
+        & $CLI  transaction build-raw --tx-in $utxo --tx-out $SendTo+0 --ttl ((get-tip) + 2000) --fee 0 --out-file $WalletPath\tx.raw 
         $minfee = ((calculate-minfee).Split(" ")[0])
         $SendAmount = $utxobalance - $minfee
-        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $SendTo+$SendAmount --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw 
-        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --mainnet --out-file $WalletPath\tx.signed
+        & $CLI  transaction build-raw --tx-in $utxo --tx-out $SendTo+$SendAmount --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw 
+        & $CLI  transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --mainnet --out-file $WalletPath\tx.signed
     }
     Else {
         $SendAmount = read-host "Enter the Amount of Love Laces to send (1 ADA = 1000000 lovelace)"
-        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+0 --tx-out $SendTo+0 --ttl ((get-tip) + 2000) --fee 0 --out-file $WalletPath\tx.raw 
+        & $CLI  transaction build-raw --tx-in $utxo --tx-out $paymentaddress+0 --tx-out $SendTo+0 --ttl ((get-tip) + 2000) --fee 0 --out-file $WalletPath\tx.raw 
         $minfee = ((calculate-minfee -txoutcount 2).Split(" ")[0]) 
         $returnAmount = $utxobalance - $SendAmount - $minfee
-        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $SendTo+$SendAmount --tx-out $paymentaddress+$returnAmount --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw 
-        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --mainnet --out-file $WalletPath\tx.signed
+        & $CLI  transaction build-raw --tx-in $utxo --tx-out $SendTo+$SendAmount --tx-out $paymentaddress+$returnAmount --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw 
+        & $CLI  transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --mainnet --out-file $WalletPath\tx.signed
     }
 
     Write-host "Are you sure you wish to send $SendAmount lovelaces at a fee of $minfee to address: $SendTo" -ForegroundColor red
@@ -261,12 +263,12 @@ Function Claim-Rewards {
     $utxobalance = get-content $WalletPath\balance.txt | ConvertFrom-Json | select -ExpandProperty $utxo | select -ExpandProperty amount
 
     If ($SendAll -eq "Yes") {
-        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $SendTo+0 --ttl ((get-tip) + 2000) --fee 0 --withdrawal $Withdrawal --out-file $WalletPath\tx.raw 
+        & $CLI  transaction build-raw --tx-in $utxo --tx-out $SendTo+0 --ttl ((get-tip) + 2000) --fee 0 --withdrawal $Withdrawal --out-file $WalletPath\tx.raw 
         $minfee = ((calculate-minfee -txincount 2).Split(" ")[0])
         $lovelacesToReturn = $utxobalance - $minfee
         $SendAmount = $RewardsBalanceLoveLaceOnly
-        & $CLI shelley transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$lovelacesToReturn --tx-out $SendTo+$SendAmount --ttl ((get-tip) + 2000) --fee $minfee --withdrawal $Withdrawal --out-file $WalletPath\tx.raw 
-        & $CLI shelley transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainnet --out-file $WalletPath\tx.signed
+        & $CLI  transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$lovelacesToReturn --tx-out $SendTo+$SendAmount --ttl ((get-tip) + 2000) --fee $minfee --withdrawal $Withdrawal --out-file $WalletPath\tx.raw 
+        & $CLI  transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --signing-key-file $WalletPath\stake.skey --mainnet --out-file $WalletPath\tx.signed
         Write-host "Are you sure you wish to send $SendAmount lovelaces at a fee of $minfee to address: $SendTo" -ForegroundColor red
         $Response = read-host "Type Yes to Submit or press any key to cancel"
     }
@@ -281,6 +283,42 @@ Function Claim-Rewards {
         }
         catch { $_ }
     }
+}
+
+Function Submit-json-file {
+    Write-Host "==== Submit Json File  ====" -ForegroundColor Green
+    $JsonPath = Read-Host "Enter the path to your Json file (eg: C:\temp\vote.json):"
+    Write-Host "Your Current Wallets in: $KeyFolder are as below:" 
+    ls $KeyFolder | select -ExpandProperty name
+    $walletName = read-host "Enter the name of the wallet you you wish use for the transaction Fees"
+
+    $WalletPath = $KeyFolder + "\" + $walletName 
+    $paymentaddress = get-content ($WalletPath + "\" + "payment.addr")
+    Query-Utxo -paymentaddress $paymentaddress -utxo "$WalletPath\balance.txt"
+    $utxo = Read-Host "Enter the utxo for the transaction by the hash number example: 5d19a49..dd0f73fe#0"
+    $utxobalance = get-content $WalletPath\balance.txt | ConvertFrom-Json | select -ExpandProperty $utxo | select -ExpandProperty amount
+
+    & $CLI  transaction build-raw --tx-in $utxo --tx-out $paymentaddress+0 --ttl ((get-tip) + 2000) --fee 0 --out-file $WalletPath\tx.raw --metadata-json-file $JsonPath
+    
+    $minfee = ((calculate-minfee).Split(" ")[0])  
+    
+    $returnAmount = $utxobalance - $minfee
+    & $CLI  transaction build-raw --tx-in $utxo --tx-out $paymentaddress+$returnAmount --ttl ((get-tip) + 2000) --fee $minfee --out-file $WalletPath\tx.raw --metadata-json-file $JsonPath
+    & $CLI  transaction sign --tx-body-file $WalletPath\tx.raw --signing-key-file $WalletPath\payment.skey --mainnet --out-file $WalletPath\tx.signed
+
+    get-content $JsonPath
+    Write-host "Are you sure you wish submit the above json from $jsonPath to the blockchain at a fee of $minfee" -ForegroundColor red
+    $Response = read-host "Type Yes to Submit or press any key to cancel" 
+    if ($Response -eq "Yes") {
+        Try {
+            submit-transaction
+            Remove-item $WalletPath\tx.raw
+            Remove-item $WalletPath\tx.signed
+            Remove-item $WalletPath\balance.txt
+        }
+        catch { $_ }
+    }
+
 }
 
 
@@ -315,9 +353,12 @@ do {
         } '7' {
             cls
             Send-Funds
+        } '8' {
+            cls
+            Submit-json-file
         } 'q' {
             return
         }
     }  
 }
-until ($input -eq '8')
+until ($input -eq '9')
