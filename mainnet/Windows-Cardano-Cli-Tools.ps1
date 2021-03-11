@@ -2,7 +2,6 @@ $PIPE = "\\.\\pipe\\cardano-node-mainnet"
 $CLI = "C:\Program Files\Daedalus Mainnet\cardano-cli.exe"
 $ENV:CARDANO_NODE_SOCKET_PATH = $PIPE
 $KeyFolder = "C:\Temp\Keys"
-$ScriptVersion = "1.24.2"
 
 If (!(test-path $KeyFolder)) {
     New-Item -ItemType Directory -Force -Path $KeyFolder 
@@ -43,7 +42,8 @@ Function Main-Menu {
     Write-Host "(6) Delegate to Stake Pool" 
     Write-Host "(7) Send Funds To Payment\Wallet Address" 
     Write-Host "(8) Submit Json File to BlockChain (Eg VOTE.Json)"
-    Write-Host "(9) Exit Script"
+    Write-Host "(9) Create Hybrid Hardware Pledge Keys"
+    Write-Host "(10) Exit Script"
     Write-Host " "
 }
 
@@ -51,7 +51,7 @@ Function show-balance($Type, $address) {
     Write-Host "----------------------------------------------------------------------------------------"
     Write-host $Address -ForegroundColor Green
     Write-host "----------------------------------------------------------------------------------------"
-    & $CLI query $Type --address $Address --cardano-mode --mainnet --allegra-era
+    & $CLI query $Type --address $Address --cardano-mode --mainnet --mary-era
     Write-host "----------------------------------------------------------------------------------------"
 }
 
@@ -323,7 +323,6 @@ Function Submit-json-file {
 
 
 #==Start Script===#
-write-host "This script is supported for $ScriptVersion for Shelley Mainnet... you are running.. " -ForegroundColor Yellow
 write-host (& $CLI --version) -ForegroundColor Yellow
 write-host "Please make sure the Daedalus Wallet is running and synced before proceeding" -ForegroundColor Gray
 write-host "Your CLI Generated Wallets are set to store in $KeyFolder.. Please Ensure To Back These Up" -ForegroundColor Gray
