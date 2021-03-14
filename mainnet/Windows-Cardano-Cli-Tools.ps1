@@ -99,12 +99,12 @@ Function submit-transaction ($txsignedfilepath = "$WalletPath\tx.signed") {
 }
 
 Function calculate-minfee ($txfilepath = "$WalletPath\tx.raw", $txincount = 1, $txoutcount = 1, $protocoljson = "$WalletPath\protocol.json", $witnesscount = 1, $byronwitnesscount = 0) {
-    & $CLI  query protocol-parameters --mainnet --allegra-era --out-file $protocoljson 
+    & $CLI  query protocol-parameters --mainnet --mary-era --out-file $protocoljson 
     & $CLI  transaction calculate-min-fee --tx-body-file $txfilepath --tx-in-count $txincount --tx-out-count $txoutcount --mainnet --protocol-params-file $protocoljson --witness-count $witnesscount --byron-witness-count $byronwitnesscount
 }
 
 Function Query-Utxo ($paymentaddress, $utxo) {
-    & $CLI  query utxo --address $paymentaddress --cardano-mode --mainnet --allegra-era --out-file $utxo
+    & $CLI  query utxo --address $paymentaddress --cardano-mode --mainnet --mary-era --out-file $utxo
     write-host "---- UTXO Balances for $paymentaddress ---" -ForegroundColor Green
     get-content $WalletPath\balance.txt
     Write-Host "Reminder Balace must exist on the payment wallet to pay fees to register if funds are missing send ada to cover fees"
@@ -361,3 +361,4 @@ do {
     }  
 }
 until ($input -eq '9')
+
